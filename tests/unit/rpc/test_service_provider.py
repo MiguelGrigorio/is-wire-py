@@ -1,9 +1,11 @@
 import os
+
 import pytest
-from is_wire.rpc import ServiceProvider, LogInterceptor
-from is_wire.core import Channel, Status, StatusCode, Subscription, Message
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf.wrappers_pb2 import Int64Value
+
+from is_wire.core import Channel, Message, Status, StatusCode, Subscription
+from is_wire.rpc import LogInterceptor, ServiceProvider
 
 URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
 EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
@@ -36,8 +38,10 @@ def test_rpc():
         channel.publish(topic="MyService", message=message)
 
         request = channel.consume(timeout=1.0)
+        assert request.acknowledgeable is True
         assert request.body == message.body
         service.serve(request)
+        assert request.acknowledgeable is False
         assert request.unpack(Struct) == struct
 
         return channel.consume(timeout=1.0)
@@ -54,6 +58,13 @@ def test_rpc():
     reply = request_serve_consume(10.0)
     assert reply.status.ok() is False
     assert reply.status.code == StatusCode.INTERNAL_ERROR
+
+    malformed = Message(content=b"not-a-protobuf", reply_to=subscription)
+    channel.publish(malformed, topic="MyService")
+    request = channel.consume(timeout=1.0)
+    service.serve(request)
+    reply = channel.consume(timeout=1.0)
+    assert reply.status.code == StatusCode.FAILED_PRECONDITION
 
     channel.close()
 

@@ -1,11 +1,27 @@
 import os
-import pytest
-from is_wire.core import Channel, Message, Subscription, now
-from google.protobuf.struct_pb2 import Struct
 import socket
+import ssl
+from unittest.mock import Mock
+
+import pytest
+from google.protobuf.struct_pb2 import Struct
+
+from is_wire.core import Channel, Message, Subscription, now
+from is_wire.core.channel import LARGE_STREAM_PAYLOAD
 
 URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
 EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
+
+
+def _channel_parameters(uri, **overrides):
+    channel = Channel.__new__(Channel)
+    channel._uri = uri
+    channel._heartbeat = overrides.get("heartbeat", 30)
+    channel._connect_timeout = overrides.get("connect_timeout", 5.0)
+    channel._read_timeout = overrides.get("read_timeout")
+    channel._write_timeout = overrides.get("write_timeout")
+    channel._ssl_options = overrides.get("ssl_options")
+    return channel._connection_parameters()
 
 
 def test_channel():
@@ -67,7 +83,7 @@ def test_body(size):
 
 def test_negative_timeout():
     channel = Channel(uri=URI, exchange=EXCHANGE)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         channel.consume(timeout=-1e-10)
     with pytest.raises(socket.timeout):
         channel.consume(timeout=0)
@@ -110,3 +126,43 @@ def test_multi_subscription():
     recv = channel.consume(timeout=1.0)
     assert recv.subscription_id == subscription2.name
     channel.close()
+
+
+def test_amqps_requires_certificate_and_hostname_validation():
+    parameters = _channel_parameters(
+        "amqps://user:p%40ss@rabbit.example:5671/%2F",
+        ssl_options={"ca_certs": "/tmp/ca.pem"},
+    )
+
+    assert parameters["userid"] == "user"
+    assert parameters["password"] == "p@ss"
+    assert parameters["virtual_host"] == "/"
+    assert parameters["ssl"]["cert_reqs"] == ssl.CERT_REQUIRED
+    assert parameters["ssl"]["server_hostname"] == "rabbit.example"
+
+    with pytest.raises(ValueError):
+        _channel_parameters(
+            "amqps://rabbit.example",
+            ssl_options={"cert_reqs": ssl.CERT_NONE},
+        )
+
+
+def test_invalid_uri_scheme_is_rejected_before_connecting():
+    with pytest.raises(ValueError):
+        _channel_parameters("http://rabbit.example")
+
+
+def test_large_stream_payload_warns_but_is_published_without_compression():
+    channel = Channel.__new__(Channel)
+    channel._exchange = "is"
+    channel._channel = Mock()
+    payload = b"x" * (LARGE_STREAM_PAYLOAD + 1)
+    message = Message(content=payload)
+
+    with pytest.warns(RuntimeWarning, match="larger than 16 MiB"):
+        channel.publish_stream(message, topic="Camera.0.Frame")
+
+    published = channel._channel.basic_publish.call_args.args[0]
+    assert published.body is payload
+    assert published.properties["delivery_mode"] == 1
+    assert published.properties["expiration"] == "2000"

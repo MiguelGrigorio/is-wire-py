@@ -1,4 +1,5 @@
-class Context(object):
+class Context:
+
     def __init__(self, request, reply):
         self._request = request
         self._reply = reply

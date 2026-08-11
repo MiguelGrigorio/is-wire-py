@@ -1,6 +1,7 @@
 from enum import Enum
-from . import wire_pb2
+
 from ..utils import assert_type
+from . import wire_pb2
 
 
 class ContentType(Enum):
@@ -9,7 +10,8 @@ class ContentType(Enum):
 
 
 def content_type_to_wire(content_type):
-    """ Converts an object of type ContentType to the wire string representation.
+    """ Converts an object of type ContentType to the wire string
+    representation.
     Args:
         content_type (ContentType): enum value
     Returns:
@@ -23,8 +25,7 @@ def content_type_to_wire(content_type):
         return 'application/json'
 
     raise NotImplementedError(
-        "ContentType '{}' wire serialization not implemented".format(
-            content_type.name))
+        f"ContentType '{content_type.name}' wire serialization not implemented")
 
 
 def content_type_from_wire(string):
@@ -41,4 +42,4 @@ def content_type_from_wire(string):
     if string == 'application/json':
         return ContentType.JSON
 
-    raise RuntimeError("Bad content_type {}".format(string))
+    raise RuntimeError(f"Bad content_type {string}")

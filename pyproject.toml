@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "is-wire-sea"
+version = "1.3.1"
+description = "Python AMQP application support layer for the IS architecture"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+  { name = "LabSEA", email = "labsea.gua@gmail.com" },
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+  "amqp>=5.3.1,<6",
+  "colorlog>=6.12,<7",
+  "opentelemetry-api>=1.44,<2",
+  "opentelemetry-propagator-b3>=1.44,<2",
+  "prometheus-client>=0.26,<1",
+  "protobuf>=5.29,<8",
+]
+
+[project.optional-dependencies]
+tracing = [
+  "opentelemetry-exporter-otlp-proto-grpc>=1.44,<2",
+  "opentelemetry-sdk>=1.44,<2",
+]
+legacy-tracing = [
+  "opencensus>=0.11.4,<0.12",
+  "opentelemetry-sdk>=1.44,<2",
+]
+codegen = ["grpcio-tools==1.69.0"]
+dev = [
+  "build>=1.5,<2",
+  "pytest>=8.3,<10",
+  "pytest-cov>=7,<8",
+  "ruff>=0.12,<1",
+  "tox>=4.25,<5",
+  "twine>=6,<8",
+]
+
+[project.urls]
+Homepage = "https://github.com/MiguelGrigorio/is-wire-py"
+Repository = "https://github.com/MiguelGrigorio/is-wire-py"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"is_wire.core.wire" = ["wire.proto"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+  "integration: requires a RabbitMQ broker",
+]
+
+[tool.coverage.run]
+source = ["is_wire"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+extend-exclude = ["src/is_wire/core/wire/wire_pb2.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py310,py311,py312,py313,py314,lint
+
+[testenv]
+extras = dev,tracing
+commands = pytest --cov=is_wire {posargs:tests}
+
+[testenv:lint]
+basepython = python3.10
+extras = dev
+commands = ruff check src tests
+"""

@@ -1,17 +1,33 @@
+from google.protobuf import json_format
+
 from ..message import Message
+from . import wire_pb2
 from .content_type import content_type_from_wire, content_type_to_wire
 from .status import Status, StatusCode
-from . import wire_pb2
-from google.protobuf import json_format
-from six import binary_type
 
 
-class WireV1(object):
+def _message_to_json(message):
+    try:
+        return json_format.MessageToJson(
+            message,
+            indent=0,
+            always_print_fields_with_no_presence=True,
+        )
+    except TypeError:  # Protobuf 3 compatibility during broker migration.
+        return json_format.MessageToJson(
+            message,
+            indent=0,
+            including_default_value_fields=True,
+        )
+
+
+class WireV1:
+
     @staticmethod
-    def from_amqp_message(amqp_message):
+    def from_amqp_message(amqp_message, acknowledgeable=False):
         message = Message()
 
-        if not isinstance(amqp_message.body, binary_type):
+        if not isinstance(amqp_message.body, bytes):
             message.body = amqp_message.body.encode('latin')
         else:
             message.body = amqp_message.body
@@ -38,22 +54,27 @@ class WireV1(object):
             message.created_at = properties["timestamp"] / 1000.0
 
         if "application_headers" in properties:
-            if "rpc-status" in properties["application_headers"]:
+            headers = dict(properties["application_headers"])
+            if "rpc-status" in headers:
                 status = json_format.Parse(
-                    properties["application_headers"]["rpc-status"],
+                    headers.pop("rpc-status"),
                     wire_pb2.Status())
                 message.status = Status(
                     code=StatusCode(status.code),
                     why=status.why,
                 )
-                del properties["application_headers"]["rpc-status"]
+            message.metadata = headers
 
-            message.metadata = properties["application_headers"]
+        message._set_delivery(
+            amqp_message.channel,
+            delivery_info.get("delivery_tag"),
+            acknowledgeable,
+        )
 
         return message
 
     @staticmethod
-    def to_amqp_properties(message):
+    def to_amqp_properties(message, *, expiration=None, delivery_mode=None):
         properties = {}
         properties["timestamp"] = int(message.created_at * 1000)
 
@@ -62,8 +83,7 @@ class WireV1(object):
                 message.content_type)
 
         if message.has_correlation_id():
-            properties["correlation_id"] = "{:X}".format(
-                message.correlation_id)
+            properties["correlation_id"] = f"{message.correlation_id:X}"
 
         if message.has_reply_to():
             properties["reply_to"] = message.reply_to
@@ -71,10 +91,13 @@ class WireV1(object):
         if message.has_timeout():
             properties["expiration"] = str(int(message.timeout * 1000))
 
-        if len(message.metadata) != 0:
-            properties["application_headers"] = message.metadata
-        else:
-            properties["application_headers"] = {}
+        if expiration is not None:
+            properties["expiration"] = str(int(expiration * 1000))
+
+        if delivery_mode is not None:
+            properties["delivery_mode"] = delivery_mode
+
+        properties["application_headers"] = dict(message.metadata)
 
         if message.has_status():
             status = wire_pb2.Status(
@@ -82,7 +105,6 @@ class WireV1(object):
                 why=message.status.why,
             )
             properties["application_headers"][
-                "rpc-status"] = json_format.MessageToJson(
-                    status, indent=0, including_default_value_fields=True)
+                "rpc-status"] = _message_to_json(status)
 
         return properties

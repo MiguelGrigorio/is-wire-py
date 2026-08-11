@@ -1,7 +1,12 @@
-import pytest
-from is_wire.core import Message, now, ContentType, StatusCode, Status
-from is_wire.core.wire.conversion import WireV1
+import json
+from pathlib import Path
+
 import amqp
+
+from is_wire.core import ContentType, Message, Status, StatusCode, now
+from is_wire.core.wire.conversion import WireV1
+
+FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
 
 
 def test_amqp_conversion():
@@ -47,3 +52,22 @@ def test_amqp_conversion():
     assert sent.correlation_id == received.correlation_id
     assert sent.timeout == received.timeout
     assert sent.metadata == received.metadata
+
+
+def test_wire_121_golden_body_and_properties_are_unchanged():
+    body = (FIXTURES / "wire_v1_body.bin").read_bytes()
+    expected = json.loads((FIXTURES / "wire_v1_properties.json").read_text())
+    message = Message(body)
+    message.created_at = 1700000000.123
+    message.content_type = ContentType.PROTOBUF
+    message.correlation_id = 0x0123456789ABCDEF
+    message.reply_to = "reply.queue"
+    message.timeout = 2
+    message.metadata = {
+        "x-b3-traceid": "f047c6f208eb36ab",
+        "custom": "value",
+    }
+    message.status = Status(StatusCode.FAILED_PRECONDITION, "bad request")
+
+    assert message.body == body
+    assert WireV1.to_amqp_properties(message) == expected

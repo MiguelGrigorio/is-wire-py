@@ -1,0 +1,12 @@
+{
+  "timestamp": 1700000000123,
+  "content_type": "application/x-protobuf",
+  "correlation_id": "123456789ABCDEF",
+  "reply_to": "reply.queue",
+  "expiration": "2000",
+  "application_headers": {
+    "x-b3-traceid": "f047c6f208eb36ab",
+    "custom": "value",
+    "rpc-status": "{\n\"code\": \"FAILED_PRECONDITION\",\n\"why\": \"bad request\"\n}"
+  }
+}

@@ -1,6 +1,8 @@
-from colorlog import ColoredFormatter, StreamHandler, getLogger
-from sys import exit
 import logging
+from sys import exit
+
+from colorlog import ColoredFormatter, StreamHandler, getLogger
+
 from .utils import assert_type
 
 
@@ -29,7 +31,8 @@ class Logger:
                 'CRITICAL': 'white,bg_red',
             },
             secondary_log_colors={},
-            style='%')
+            style='%',
+        )
 
         self.logger = getLogger(name)
         if len(self.logger.handlers) == 0 and name:

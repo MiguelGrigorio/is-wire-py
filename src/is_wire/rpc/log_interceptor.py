@@ -1,16 +1,17 @@
-from ..core import Logger, now, StatusCode
+from ..core import Logger, StatusCode, now
 from ..rpc import Interceptor
 
 
 class LogInterceptor(Interceptor):
+
     def __init__(self):
         self.log = Logger(name='LogInterceptor')
 
     def before_call(self, context):
-        self.begin = now()
+        context.addons["log_interceptor.started_at"] = now()
 
     def after_call(self, context):
-        took = now() - self.begin
+        took = now() - context.addons["log_interceptor.started_at"]
         status = context.reply.status
         if status.ok():
             self.log.info("took={}s, code={}", took, status.code.name)

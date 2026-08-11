@@ -1,7 +1,7 @@
-from __future__ import print_function
 import pytest
-from is_wire.core import Message, ContentType, Status
 from google.protobuf.struct_pb2 import Struct
+
+from is_wire.core import ContentType, Message, Status
 
 
 def test_default_constructor():
@@ -17,11 +17,12 @@ def test_default_constructor():
     assert message.has_metadata() is False
 
 
-_integer = [int(-1)]
-_string = [str("str")]
+_integer = [(-1)]
+_string = ["str"]
 _binary = ["str".encode('latin')]
-_float = [float(-1.0)]
+_float = [(-1.0)]
 _number = _integer + _float
+_non_negative_number = [0, 0.0, 1, 1.0]
 _content_type = [ContentType.PROTOBUF]
 _status = [Status()]
 _dict = [{}]
@@ -36,7 +37,7 @@ no_check_FIX_ME = []
                           ("correlation_id", _integer, _float + _string),
                           ("content_type", _content_type, _number + _string),
                           ("created_at", no_check_FIX_ME, no_check_FIX_ME),
-                          ("timeout", _number, _string),
+                          ("timeout", _non_negative_number, _string),
                           ("status", _status, _number + _string),
                           ("metadata", _dict, _number + _string)])
 def test_type_safety(property, valid_types, invalid_types):
@@ -67,6 +68,12 @@ def test_has_field(attr, value, checker):
     assert checker(message) is False
     setattr(message, attr, value)
     assert checker(message) is True
+
+
+def test_negative_timeout_is_rejected():
+    message = Message()
+    with pytest.raises(ValueError):
+        message.timeout = -1
 
 
 def test_pack_unpack():

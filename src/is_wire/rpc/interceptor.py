@@ -1,4 +1,5 @@
-class Interceptor(object):
+class Interceptor:
+
     def before_call(self, context):
         pass
 
