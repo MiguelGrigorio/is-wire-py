@@ -25,8 +25,10 @@ class ServiceProvider:
         self._stopped = Event()
 
     def delegate(self, topic, function, request_type, reply_type):
-        """ Bind a function to a particular topic, so everytime a message is
-            received in this topic the function will be called """
+        """Vincula uma função a um tópico.
+
+        Ela será chamada a cada mensagem recebida nesse tópico.
+        """
         assert_type(topic, str, "topic")
         if any(topic == s.name for s in self._subscriptions):
             raise RuntimeError(
@@ -44,11 +46,11 @@ class ServiceProvider:
         self._services[subscription.id] = wrapped
 
     def add_interceptor(self, interceptor):
-        """ Add an interceptor to the service provider. Interceptors provide
-        a way to call functions before and after the actual service handler is
-        called. For that the interceptor object passed must implement the
-        Interceptor concept, that is, to have a before_call and after_call
-        methods.
+        """Adiciona um interceptor ao provider.
+
+        Interceptors permitem executar funções antes e depois do handler do
+        serviço. O objeto deve implementar os métodos ``before_call`` e
+        ``after_call``.
         """
         itype = type(interceptor)
         if not hasattr(itype, "before_call") and \
@@ -62,9 +64,7 @@ class ServiceProvider:
         return message.subscription_id in self._services
 
     def serve(self, message):
-        """ Attempts to serve the message. Raises runtime error if message
-        cannot be served. Users can check if the message can be served by
-        calling the should_serve method """
+        """Tenta atender a mensagem; lança RuntimeError quando isso não é possível."""
         try:
             service = self._services[message.subscription_id]
         except KeyError as error:
@@ -77,7 +77,7 @@ class ServiceProvider:
         message.ack()
 
     def run(self):
-        """ Blocks the current thread listening for requests """
+        """Bloqueia a thread atual enquanto escuta requisições."""
         self.log.info("Listening for requests")
         self._stopped.clear()
         previous_handlers = {}
@@ -101,8 +101,8 @@ class ServiceProvider:
                     try:
                         self.serve(message)
                     except (amqp.exceptions.RecoverableConnectionError, OSError):
-                        # The request remains unacknowledged and RabbitMQ will
-                        # redeliver it after the connection is restored.
+                        # A requisição permanece sem confirmação e o RabbitMQ
+                        # a reentregará depois que a conexão for restaurada.
                         self._channel._reconnect()
         except KeyboardInterrupt:
             self.stop()

@@ -17,7 +17,7 @@ def _message_to_json(obj):
             indent=0,
             always_print_fields_with_no_presence=True,
         )
-    except TypeError:  # Protobuf 3 compatibility during broker migration.
+    except TypeError:  # Compatibilidade com Protobuf 3 durante a migração do broker.
         return pb.MessageToJson(
             obj,
             indent=0,
@@ -31,7 +31,7 @@ def _message_to_dict(obj):
             obj,
             always_print_fields_with_no_presence=True,
         )
-    except TypeError:  # Protobuf 3 compatibility during broker migration.
+    except TypeError:  # Compatibilidade com Protobuf 3 durante a migração do broker.
         return pb.MessageToDict(
             obj,
             including_default_value_fields=True,
@@ -41,17 +41,13 @@ def _message_to_dict(obj):
 class Message:
 
     def __init__(self, content=None, reply_to=None, content_type=None):
-        """ Creates a new message.
+        """Cria uma nova mensagem.
+
         Args:
-            content (str or object): sets the message body with the
-            given content. If an object is provided, it will be packed
-            using the given content_type.
-
-            content_type (ContentType): describes how the content will
-            be serialized.
-
-            reply_to (str or Subscription): indicates where the reply to
-            this message should be sent to.
+            content (str or object): define o corpo da mensagem. Se um objeto
+                for fornecido, ele será empacotado usando content_type.
+            content_type (ContentType): descreve como o conteúdo será serializado.
+            reply_to (str or Subscription): indica para onde a resposta deve ser enviada.
         """
         self._topic = None
         self._body = b''
@@ -81,7 +77,7 @@ class Message:
                 self.pack(content)
 
     def __str__(self):
-        """ Converts a message to a verbose string of its properties """
+        """Converte a mensagem em uma string detalhada de suas propriedades."""
         created_at = datetime.fromtimestamp(self.created_at)
         pretty = "{\n"
         pretty += "  topic = '{}'\n".format(self.topic or "")
@@ -99,8 +95,7 @@ class Message:
         return pretty
 
     def short_string(self):
-        """ Converts a message to a simplified string of its properties, empty
-         fields are not printed """
+        """Converte a mensagem em uma string simplificada; campos vazios não são exibidos."""
         created_at = datetime.fromtimestamp(self.created_at)
         pretty = "{"
         pretty += f"topic='{self.topic}'"
@@ -124,7 +119,7 @@ class Message:
         return pretty
 
     def __eq__(self, other):
-        """ Returns True if the messages are equal, False otherwise """
+        """Retorna True se as mensagens forem iguais e False caso contrário."""
         if not isinstance(other, Message):
             return NotImplemented
         ignored = {
@@ -147,12 +142,11 @@ class Message:
             reply.content_type = self.content_type
         return reply
 
-    # topic
+    # tópico
 
     @property
     def topic(self):
-        """ str: Topic where the message was published or is going
-         to be published """
+        """str: Tópico em que a mensagem foi ou será publicada."""
         return self._topic
 
     @topic.setter
@@ -161,18 +155,18 @@ class Message:
         self._topic = topic
 
     def has_topic(self):
-        """ Returns: True if the property topic of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade topic estiver definida."""
         return bool(self._topic)
 
     # reply_to
 
     @property
     def reply_to(self):
-        """ str: Topic where the reply to this message should be published.
-         When setting this property an object of type Subscription can be
-         passed to automatically set this value. The correlation_id field
-         is automatically set if empty. """
+        """str: Tópico em que a resposta deve ser publicada.
+
+        Um objeto Subscription pode ser passado para definir esse valor
+        automaticamente. O campo correlation_id é definido automaticamente se vazio.
+        """
         return self._reply_to
 
     @reply_to.setter
@@ -190,15 +184,14 @@ class Message:
             self._reply_to = value
 
     def has_reply_to(self):
-        """ Returns: True if the property reply_to of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade reply_to estiver definida."""
         return bool(self._reply_to)
 
     # subscription_id
 
     @property
     def subscription_id(self):
-        """ str: ID of the subscription that this message belongs to """
+        """str: ID da assinatura à qual esta mensagem pertence."""
         return self._subscription_id
 
     @subscription_id.setter
@@ -207,15 +200,14 @@ class Message:
         self._subscription_id = value
 
     def has_subscription_id(self):
-        """ Returns: True if the property subscription_id of the message is
-        set, False otherwise """
+        """Retorna True se a propriedade subscription_id estiver definida."""
         return bool(self._subscription_id)
 
     # correlation_id
 
     @property
     def correlation_id(self):
-        """ int: Unique ID used to correlate reply/response messages """
+        """int: ID exclusivo usado para correlacionar mensagens de resposta."""
         return self._correlation_id
 
     @correlation_id.setter
@@ -224,15 +216,14 @@ class Message:
         self._correlation_id = value
 
     def has_correlation_id(self):
-        """ Returns: True if the property correlation_id of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade correlation_id estiver definida."""
         return self._correlation_id is not None
 
-    # body
+    # corpo
 
     @property
     def body(self):
-        """ bytes: Raw content of the message """
+        """bytes: Conteúdo bruto da mensagem."""
         return self._body
 
     @body.setter
@@ -241,16 +232,14 @@ class Message:
         self._body = value
 
     def has_body(self):
-        """ Returns: True if the property body of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade body estiver definida."""
         return bool(self._body)
 
     # content_type
 
     @property
     def content_type(self):
-        """ ContentType: Indicates how the content/body of the message
-        was serialized """
+        """ContentType: indica como o conteúdo/corpo da mensagem foi serializado."""
         return self._content_type
 
     @content_type.setter
@@ -259,16 +248,14 @@ class Message:
         self._content_type = value
 
     def has_content_type(self):
-        """ Returns: True if the property content_type of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade content_type estiver definida."""
         return self._content_type is not None
 
     # created_at
 
     @property
     def created_at(self):
-        """ float: Seconds since the epoch indicating when the message
-        was created"""
+        """float: Segundos desde a época indicando quando a mensagem foi criada."""
         return self._created_at
 
     @created_at.setter
@@ -277,16 +264,14 @@ class Message:
         self._created_at = timestamp
 
     def has_created_at(self):
-        """ Returns: True if the property created_at of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade created_at estiver definida."""
         return self._created_at is not None
 
-    # metadata
+    # metadados
 
     @property
     def metadata(self):
-        """ dict: Key-value pairs which any can model any type of extra
-        information about the message """
+        """dict: Pares chave-valor que podem representar informações extras da mensagem."""
         return self._metadata
 
     @metadata.setter
@@ -295,8 +280,7 @@ class Message:
         self._metadata = value
 
     def has_metadata(self):
-        """ Returns: True if the property metadata of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade metadata estiver definida."""
         return len(self._metadata) != 0
 
     # timeout
@@ -313,8 +297,7 @@ class Message:
         self._timeout = seconds
 
     def has_timeout(self):
-        """ Returns: True if the property timeout of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade timeout estiver definida."""
         return self._timeout is not None
 
     def deadline_exceeded(self):
@@ -326,7 +309,7 @@ class Message:
 
     @property
     def status(self):
-        """ Status representing the success or not of a RPC """
+        """Status que representa o sucesso ou a falha de uma RPC."""
         return self._status
 
     @status.setter
@@ -335,8 +318,7 @@ class Message:
         self._status = value
 
     def has_status(self):
-        """ Returns: True if the property status of the message is set,
-         False otherwise """
+        """Retorna True se a propriedade status estiver definida."""
         return self._status is not None
 
     # tracing
@@ -347,7 +329,7 @@ class Message:
     def inject_tracing(self, span):
         self.metadata = TextFormatPropagator.to_carrier(span, self.metadata)
 
-    # delivery acknowledgements
+    # confirmações de entrega
 
     def _set_delivery(self, channel, delivery_tag, acknowledgeable):
         self._delivery_channel = channel
@@ -359,7 +341,7 @@ class Message:
         return self._acknowledgeable and not self._settled
 
     def ack(self):
-        """Acknowledge this delivery when manual acknowledgement is enabled."""
+        """Confirma esta entrega quando a confirmação manual está habilitada."""
         if not self.acknowledgeable:
             return False
         self._delivery_channel.basic_ack(self._delivery_tag)
@@ -367,21 +349,21 @@ class Message:
         return True
 
     def reject(self, requeue=False):
-        """Reject this delivery, optionally asking RabbitMQ to requeue it."""
+        """Rejeita esta entrega, opcionalmente pedindo ao RabbitMQ que a reencaminhe à fila."""
         if not self.acknowledgeable:
             return False
         self._delivery_channel.basic_reject(self._delivery_tag, requeue=requeue)
         self._settled = True
         return True
 
-    # pack / unpack
+    # empacotamento / desempacotamento
 
     def pack(self, obj):
-        """ Serializes the given object using the specified message
-        content_type. If the message has no content_type, the protobuf
-        format is used.
+        """Serializa o objeto usando o content_type especificado da mensagem.
+
+        Se a mensagem não tiver content_type, o formato Protobuf será usado.
         Args:
-            obj (object): protobuf object to be serialized.
+            obj (object): objeto Protobuf a ser serializado.
         """
 
         isDict = isinstance(obj, dict)
@@ -390,18 +372,18 @@ class Message:
             obj = pb.ParseDict(obj, Struct())
 
         if not self.has_content_type():
-            # Default for dict object is to be serialized as json
-            # Default for protobuf object is to be binary serialized
+            # Por padrão, dicionários são serializados como JSON.
+            # Objetos Protobuf são serializados em formato binário.
             if isDict:
                 self.content_type = ContentType.JSON
             else:
                 self.content_type = ContentType.PROTOBUF
 
         if self.content_type == ContentType.PROTOBUF:
-            # SerializeToString returns py2: str, py3: bytes
+            # SerializeToString retorna str no Python 2 e bytes no Python 3.
             self.body = obj.SerializeToString()
         elif self.content_type == ContentType.JSON:
-            # MessageToJson returns py2: str, py3: str
+            # MessageToJson retorna str no Python 2 e no Python 3.
             packed = _message_to_json(obj)
             if not isinstance(packed, bytes):
                 self.body = packed.encode('latin')
@@ -412,12 +394,13 @@ class Message:
                 f"Serialization to '{self.content_type.name}' type not implemented")
 
     def unpack(self, schema=dict):
-        """ Deserializes the content of the message using the given schema.
-        If the message has no content_type, the protobuf format is used.
+        """Desserializa o conteúdo usando o schema fornecido.
+
+        Se a mensagem não tiver content_type, o formato Protobuf será usado.
         Args:
-            schema (type): type of the protobuf object to be deserialized.
+            schema (type): tipo do objeto Protobuf a ser desserializado.
         Returns:
-            schema: deserialized instance of the object of type schema.
+            schema: instância desserializada do tipo schema.
         """
 
         isDict = schema is dict

@@ -1,37 +1,41 @@
-# Migrating to is-wire-sea 1.3
+# Migrando para is-wire-sea 2.0
 
-## Python package
+## Pacote Python
 
-Replace `is-wire` with `is-wire-sea` in dependency manifests. Do not change application
-imports: the package is still imported as `is_wire`. Upgrade the runtime to Python 3.10 or
-newer.
+Substitua `is-wire` por `is-wire-sea` nos manifestos de dependências. Não altere os imports da
+aplicação: o pacote continua sendo importado como `is_wire`. Atualize o runtime para Python 3.10
+ou superior.
 
-Applications using OpenCensus should temporarily install `is-wire-sea[legacy-tracing]` and
-migrate their exporter to OpenTelemetry/OTLP. New applications should use
-`is-wire-sea[tracing]`.
+A compatibilidade com OpenCensus e `AsyncTransport` foi removida na 2.0. As aplicações devem usar
+OpenTelemetry por meio de `is-wire-sea[tracing]` ou a integração Zipkin agrupada por meio de
+`is-wire-sea[zipkin]`.
 
-## Queues
+## Filas
 
-Anonymous subscriptions now declare exclusive transient queues. Named subscriptions and RPC
-services declare durable shared queues with a five-minute unused-queue expiration. If a named
-queue with the old non-durable properties still exists, stop its consumers and delete that
-queue before starting 1.3; RabbitMQ rejects redeclaration with different properties.
+Assinaturas anônimas agora declaram filas transitórias exclusivas. Assinaturas nomeadas e
+serviços RPC declaram filas duráveis compartilhadas, com expiração após cinco minutos sem uso.
+Se ainda existir uma fila nomeada com as propriedades não duráveis antigas, pare seus
+consumidores e exclua essa fila antes de iniciar a 2.0; o RabbitMQ rejeita a redeclaração com
+propriedades diferentes.
 
-Keep `Subscription` for configuration/events where every subscriber needs a copy. Change
-real-time image consumers to `StreamSubscription` and assign one stable group per processing
-stage. All replicas of a stage must use exactly the same group.
+Mantenha `Subscription` para configurações/eventos em que todo assinante precisa de uma cópia.
+Altere consumidores de imagens em tempo real para `StreamSubscription` e atribua um grupo
+estável por etapa de processamento. Todas as réplicas de uma etapa devem usar exatamente o
+mesmo grupo.
 
 ## Broker
 
-Validate 1.3 against the existing RabbitMQ deployment first. A RabbitMQ 3.7.6 data directory
-cannot be upgraded directly to 4.3. Create a new pinned 4.3 cluster, reproduce users/vhosts,
-permissions, policies and exchanges, then move applications incrementally. Do not enable
-`transient_nonexcl_queues` as a permanent compatibility setting.
+Valide primeiro a 2.0 contra a implantação existente do RabbitMQ. Um diretório de dados do
+RabbitMQ 3.7.6 não pode ser atualizado diretamente para a 4.3. Crie um cluster 4.3 novo e
+fixado, reproduza usuários/vhosts, permissões, políticas e exchanges, e migre as aplicações
+gradualmente. Não habilite `transient_nonexcl_queues` como configuração permanente.
 
-## Operational checks
+## Verificações operacionais
 
-- Use separate channels/connections for high-volume image traffic and RPC.
-- Confirm image publishers send JPEG, WebP, or PNG bytes rather than raw arrays or base64.
-- Verify each replicated stage shares one stream group.
-- Monitor published/received bytes, frame age, callback errors, RPC status and reconnections.
-- Treat RPC handlers as idempotent because unacknowledged requests can be redelivered.
+- Use canais/conexões separados para tráfego de imagens em alto volume e RPC.
+- Confirme que publicadores de imagens enviam bytes JPEG, WebP ou PNG, e não arrays brutos ou
+  base64.
+- Verifique se cada etapa replicada compartilha um grupo de streaming.
+- Monitore bytes publicados/recebidos, idade dos quadros, erros de callback, status RPC e
+  reconexões.
+- Trate handlers RPC como idempotentes, pois requisições não confirmadas podem ser reentregues.

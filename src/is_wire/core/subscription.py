@@ -127,7 +127,7 @@ class Subscription:
 
 
 class StreamSubscription(Subscription):
-    """Grouped latest-frame subscription for real-time binary payloads."""
+    """Assinatura agrupada do quadro mais recente para payloads binários em tempo real."""
 
     def __init__(self, channel, group):
         if not isinstance(group, str) or not group.strip():
@@ -173,8 +173,8 @@ class StreamSubscription(Subscription):
             else:
                 message.ack()
         except (amqp.exceptions.RecoverableConnectionError, OSError):
-            # Settlement may not have reached the broker. Do not retry the
-            # acknowledgement on a new channel; let RabbitMQ redeliver.
+            # A confirmação pode não ter chegado ao broker. Não repita a
+            # confirmação em um novo canal; deixe o RabbitMQ reentregar.
             self._parent._reconnect()
 
     def consume(self, timeout=None):

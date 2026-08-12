@@ -9,11 +9,11 @@ class TracingContext:
 
 
 class TextFormatPropagator:
-    """Compatibility B3 multi-header propagator.
+    """Propagador B3 com múltiplos cabeçalhos para compatibilidade.
 
-    B3 permits 64-bit and 128-bit trace identifiers. New traces use 128-bit
-    identifiers while contexts extracted from older services retain their
-    original representation.
+    O B3 permite identificadores de rastreamento de 64 e 128 bits. Novos
+    rastreamentos usam 128 bits, enquanto contextos extraídos de serviços
+    antigos mantêm sua representação original.
     """
 
     trace_prefix = "x-b3"
@@ -57,6 +57,15 @@ class TextFormatPropagator:
                 span_or_context.sampled,
             )
 
+        if hasattr(span_or_context, "get_span_context"):
+            context = span_or_context.get_span_context()
+            trace_id = f"{context.trace_id:032x}"
+            span_id = f"{context.span_id:016x}"
+            sampled = bool(int(context.trace_flags) & 1)
+            return trace_id, span_id, sampled
+
+        # Compatibility with legacy span facades that do not expose an
+        # OpenTelemetry SpanContext. Those spans were always sampled.
         if hasattr(span_or_context, "context_tracer") and hasattr(span_or_context, "span_id"):
             return (
                 str(span_or_context.context_tracer.trace_id),
@@ -64,8 +73,4 @@ class TextFormatPropagator:
                 True,
             )
 
-        context = span_or_context.get_span_context()
-        trace_id = f"{context.trace_id:032x}"
-        span_id = f"{context.span_id:016x}"
-        sampled = bool(int(context.trace_flags) & 1)
-        return trace_id, span_id, sampled
+        raise TypeError("span_or_context must expose tracing identifiers")

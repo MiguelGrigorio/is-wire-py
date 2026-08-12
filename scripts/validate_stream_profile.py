@@ -1,4 +1,4 @@
-"""Exercise the latest-frame stream profile against a real RabbitMQ broker."""
+"""Exercita o perfil de fluxo do quadro mais recente contra um broker RabbitMQ real."""
 
 import argparse
 import json

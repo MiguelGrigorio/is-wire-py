@@ -36,3 +36,14 @@ def test_otel_accepts_a_64_bit_b3_parent_trace_id():
 
     exported = exporter.get_finished_spans()[0]
     assert exported.context.trace_id == int(parent.trace_id, 16)
+
+
+def test_exporter_and_shared_provider_are_mutually_exclusive():
+    exporter_module = pytest.importorskip("opentelemetry.sdk.trace.export.in_memory_span_exporter")
+    provider_module = pytest.importorskip("opentelemetry.sdk.trace")
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        Tracer(
+            exporter=exporter_module.InMemorySpanExporter(),
+            provider=provider_module.TracerProvider(),
+        )

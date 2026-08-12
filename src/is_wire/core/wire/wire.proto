@@ -7,7 +7,7 @@ option java_multiple_files = true;
 
 import "google/protobuf/any.proto";
 
-// Codes used to indicated the failure/success of a RPC
+// Códigos que indicam falha ou sucesso de uma RPC
 enum StatusCode {
   UNKNOWN = 0;  
   OK = 1;
@@ -26,7 +26,7 @@ enum StatusCode {
 
 message Status {
   StatusCode code = 1;
-  string why = 2; // Human readable message explaining the error
+  string why = 2; // Mensagem legível explicando o erro
 }
 
 enum ContentType {
@@ -41,7 +41,7 @@ message WireFormat {
     bytes raw = 1;
     google.protobuf.Any message = 2;
   }
-  // Time point where the message was created
+  // Instante em que a mensagem foi criada
   uint64 created_at = 3;
   //
   ContentType content_type = 4;
@@ -49,7 +49,7 @@ message WireFormat {
   Status status = 5;
   // 
   uint64 correlation_id = 6;
-  // Where the result of processing this message should be sent to
+  // Para onde o resultado do processamento desta mensagem deve ser enviado
   string reply_to = 7;
   //
   uint32 expires_in = 8;

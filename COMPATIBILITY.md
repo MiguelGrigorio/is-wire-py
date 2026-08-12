@@ -1,16 +1,20 @@
-# Compatibility policy
+# Política de compatibilidade
 
-`is-wire-sea` follows semantic versioning for the public Python API and the existing IS wire
-format. The distribution name changed, but applications continue to import `is_wire`.
+`is-wire-sea` segue versionamento semântico para a API pública Python e para o formato wire IS
+existente. O nome da distribuição mudou, mas as aplicações continuam importando `is_wire`.
 
-Version 1.3 supports Python 3.10 through 3.14, py-amqp 5.x, Protobuf 5 through 7, and
-RabbitMQ 4.3. RabbitMQ 3.7.6 and 3.13.7 are transition targets and are tested only to make
-broker migration possible.
+A versão 2.0 oferece suporte a Python 3.10 a 3.14, py-amqp 5.x, Protobuf 5 a 7 e RabbitMQ 4.3.
+RabbitMQ 3.7.6 e 3.13.7 são alvos de transição e são testados apenas para viabilizar a migração
+do broker.
 
-The `Subscription` and `Channel.consume` APIs retain their at-most-once legacy behavior.
-`StreamSubscription` has intentionally lossy latest-frame semantics. RPC services use manual
-acknowledgements and at-least-once request delivery, so handlers should be idempotent.
+A versão 2.0 remove o adaptador de exportação OpenCensus e `AsyncTransport`. O formato wire AMQP
+e a propagação B3 continuam compatíveis com aplicações 1.x durante uma migração gradual.
 
-Binary Protobuf bodies and existing AMQP property conventions remain stable within the 1.x
-series. Additive metadata is permitted; removing or reinterpreting an existing field requires
-a major release.
+As APIs `Subscription` e `Channel.consume` mantêm o comportamento legado de entrega no máximo
+uma vez. `StreamSubscription` tem intencionalmente semântica de quadro mais recente com perdas.
+Serviços RPC usam confirmações manuais e entrega de requisições pelo menos uma vez; handlers
+devem ser idempotentes.
+
+Corpos binários Protobuf e convenções existentes de propriedades AMQP permanecem estáveis na
+série 2.x. Metadados aditivos são permitidos; remover ou reinterpretar um campo existente exige
+uma versão major.

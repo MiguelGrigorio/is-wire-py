@@ -136,7 +136,7 @@ class Channel:
         return message
 
     def publish(self, message, topic=None):
-        """Publish a message without retrying it after an uncertain failure."""
+        """Publica uma mensagem sem repeti-la após uma falha incerta."""
         routing_key = message.topic if topic is None else topic
         if not routing_key:
             raise RuntimeError("Trying to publish message without topic")
@@ -157,7 +157,7 @@ class Channel:
         PUBLISHED_BYTES.labels(self._exchange, routing_key, "standard").inc(len(message.body))
 
     def publish_stream(self, message, topic=None, *, expiration=STREAM_EXPIRATION_SECONDS):
-        """Publish a non-persistent, short-lived real-time payload."""
+        """Publica um payload não persistente e de curta duração para tempo real."""
         routing_key = message.topic if topic is None else topic
         if not routing_key:
             raise RuntimeError("Trying to publish stream message without topic")
@@ -190,7 +190,7 @@ class Channel:
         PUBLISHED_BYTES.labels(self._exchange, routing_key, "stream").inc(len(message.body))
 
     def consume(self, timeout=None):
-        """Block until a legacy subscription delivery is available."""
+        """Bloqueia até que uma entrega de assinatura legada esteja disponível."""
         if timeout is not None and timeout < 0:
             raise ValueError("timeout must be greater than or equal to zero")
 

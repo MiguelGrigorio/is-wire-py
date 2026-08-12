@@ -10,12 +10,11 @@ class ContentType(Enum):
 
 
 def content_type_to_wire(content_type):
-    """ Converts an object of type ContentType to the wire string
-    representation.
+    """Converte um objeto ContentType para a representação textual no wire.
     Args:
-        content_type (ContentType): enum value
+        content_type (ContentType): valor do enum
     Returns:
-        str: wire string representation
+        str: representação textual no wire
     """
     assert_type(content_type, ContentType, "content_type")
     if content_type == ContentType.PROTOBUF:
@@ -29,11 +28,11 @@ def content_type_to_wire(content_type):
 
 
 def content_type_from_wire(string):
-    """ Converts the ContentType wire string representation to the enum form.
+    """Converte a representação textual do ContentType no wire para o enum.
     Args:
-        string (str): wire string representation
+        string (str): representação textual no wire
     Returns:
-        ContentType: enum value
+        ContentType: valor do enum
     """
     assert_type(string, str, "string")
     if string == 'application/x-protobuf':

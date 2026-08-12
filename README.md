@@ -1,15 +1,15 @@
 # is-wire-sea
 
-Python AMQP middleware for the IS architecture. The PyPI distribution is named
-`is-wire-sea`; the stable Python package remains `is_wire`.
+Middleware AMQP em Python para a arquitetura IS. A distribuição no PyPI se chama
+`is-wire-sea`; o pacote Python estável continua sendo `is_wire`.
 
-## Installation
+## Instalação
 
 ```shell
 python -m pip install is-wire-sea
 ```
 
-Python 3.10 through 3.14 are supported. Install an OTLP exporter with:
+Há suporte para Python 3.10 a 3.14. Instale um exportador OTLP com:
 
 ```shell
 python -m pip install 'is-wire-sea[tracing]'
@@ -17,20 +17,21 @@ python -m pip install 'is-wire-sea[tracing]'
 
 ## Broker
 
-Production deployments must pin RabbitMQ by patch version and image digest. The development
-baseline is RabbitMQ 4.3.1:
+Implantações de produção devem fixar o RabbitMQ pela versão de patch e pelo digest da imagem.
+A base de desenvolvimento é o RabbitMQ 4.3.1:
 
 ```shell
 docker run --rm -p 5672:5672 \
   rabbitmq:4.3.1@sha256:6a46d2aef889d2a8cc28ac91b4a1ca0116a4a151de10cada219ee7685dc01c5b
 ```
 
-RabbitMQ 3.7.6 is a migration-only target. Move existing 3.7.6 deployments to a fresh 4.3
-cluster using a blue-green migration; do not reuse its data directory directly.
+RabbitMQ 3.7.6 é apenas um alvo de migração. Mova as implantações existentes da versão 3.7.6
+para um cluster 4.3 novo usando uma migração blue-green; não reutilize diretamente o diretório
+de dados antigo.
 
 ## Pub/sub
 
-The existing at-most-once API is preserved:
+A API existente de entrega no máximo uma vez é preservada:
 
 ```python
 from is_wire.core import Channel, Message, Subscription
@@ -43,14 +44,14 @@ with Channel("amqp://guest:guest@localhost:5672") as channel:
     received = channel.consume(timeout=1.0)
 ```
 
-Anonymous subscriptions are exclusive and temporary. Named subscriptions are durable,
-shared between replicas, and expire after five minutes without use.
+Assinaturas anônimas são exclusivas e temporárias. Assinaturas nomeadas são duráveis,
+compartilhadas entre réplicas e expiram após cinco minutos sem uso.
 
-## Real-time image streams
+## Fluxos de imagens em tempo real
 
-Use `StreamSubscription` when old frames may be discarded. Replicas with the same group
-share one queue, so each frame is processed by one replica instead of being copied to all of
-them.
+Use `StreamSubscription` quando quadros antigos puderem ser descartados. Réplicas com o mesmo
+grupo compartilham uma fila, então cada quadro é processado por uma réplica em vez de ser
+copiado para todas elas.
 
 ```python
 from is_msgs.image_pb2 import Image
@@ -59,7 +60,7 @@ from is_wire.core import Channel, Message, StreamSubscription
 
 def process(message):
     image = message.unpack(Image)
-    # image.data already contains JPEG, WebP, or PNG bytes.
+    # image.data já contém bytes JPEG, WebP ou PNG.
 
 
 with Channel("amqp://guest:guest@localhost:5672") as channel:
@@ -68,24 +69,24 @@ with Channel("amqp://guest:guest@localhost:5672") as channel:
     stream.run(process)
 ```
 
-Publish a frame with stream semantics:
+Publique um quadro com semântica de fluxo:
 
 ```python
 image = Image(data=encoded_jpeg_bytes)
 channel.publish_stream(Message(content=image), topic="Camera.0.Frame")
 ```
 
-The stream preset uses manual acknowledgements, prefetch 1, a queue length of one, drop-head
-overflow, a two-second TTL, and non-persistent messages. A callback exception rejects the
-frame without requeue. Use a different group only when another processing stage genuinely
-needs its own copy.
+O preset de fluxo usa confirmações manuais, prefetch 1, fila com tamanho um, descarte do item
+mais antigo quando há overflow, TTL de dois segundos e mensagens não persistentes. Uma exceção
+no callback rejeita o quadro sem recolocá-lo na fila. Use outro grupo somente quando outra
+etapa de processamento realmente precisar de sua própria cópia.
 
-`Image.data` must contain encoded binary image bytes. Do not send raw RGB/BGR unless the
-network budget explicitly allows it, do not base64 encode the body, and do not apply generic
-gzip/zstd compression to an already compressed JPEG, WebP, or PNG payload.
+`Image.data` deve conter bytes binários codificados da imagem. Não envie RGB/BGR bruto, a menos
+que o orçamento de rede permita explicitamente; não codifique o corpo em base64 e não aplique
+compressão gzip/zstd genérica a um payload JPEG, WebP ou PNG já comprimido.
 
-Use a separate `Channel` for image traffic and RPC/control traffic to avoid large frames
-delaying small control messages.
+Use um `Channel` separado para o tráfego de imagens e para o tráfego de RPC/controle, evitando
+que quadros grandes atrasem mensagens pequenas de controle.
 
 ## Protobuf
 
@@ -104,8 +105,8 @@ json_message = Message(content_type=ContentType.JSON)
 json_message.pack(value)
 ```
 
-Protobuf 5 through 7 are supported. The existing binary bodies and AMQP property conventions
-remain compatible with `is-wire` 1.2.1.
+Há suporte para Protobuf 5 a 7. Os corpos binários existentes e as convenções de propriedades
+AMQP continuam compatíveis com `is-wire` 1.2.1.
 
 ## RPC
 
@@ -125,14 +126,14 @@ provider.delegate("Echo", echo, Struct, Struct)
 provider.run()
 ```
 
-RPC service queues use manual acknowledgements and prefetch 16. A request is acknowledged
-only after its reply is published, so handlers should be idempotent.
+As filas de serviços RPC usam confirmações manuais e prefetch 16. Uma requisição só é
+confirmada depois que sua resposta é publicada; por isso, os handlers devem ser idempotentes.
 
 ## OpenTelemetry
 
-`Tracer`, `TracingInterceptor`, `Message.inject_tracing`, and
-`Message.extract_tracing` use OpenTelemetry and B3 multi-header propagation. Both 64-bit
-legacy and 128-bit trace IDs are accepted.
+`Tracer`, `TracingInterceptor`, `Message.inject_tracing` e
+`Message.extract_tracing` usam OpenTelemetry e propagação B3 com múltiplos cabeçalhos. IDs de
+trace legados de 64 bits e IDs de 128 bits são aceitos.
 
 ```python
 from is_wire.core import Message, Tracer
@@ -143,28 +144,68 @@ with tracer.span("publish") as span:
     message.inject_tracing(span)
 ```
 
-OpenCensus exporters are available temporarily through `is-wire-sea[legacy-tracing]` and emit
-a deprecation warning.
+### Zipkin
 
-## Metrics
+Instale o exportador nativo OpenTelemetry Zipkin JSON v2:
 
-Prometheus metrics are registered in the default registry. `MetricsInterceptor.start_server()`
-can expose them over HTTP. The 1.3 profile exports:
+```shell
+python -m pip install 'is-wire-sea[zipkin]'
+```
 
-- `is_wire_messages_published_total` and `is_wire_published_bytes_total`;
-- `is_wire_messages_received_total` and `is_wire_received_bytes_total`;
-- `is_wire_stream_processing_seconds`, `is_wire_stream_frame_age_seconds`, and
+Crie um provider compartilhado por processo. Ele agrupa as exportações em segundo plano, aplica
+amostragem baseada no contexto pai e identifica cada instância de câmera separadamente no
+Zipkin:
+
+```python
+from is_wire.core import Message, ZipkinTracing
+from is_wire.rpc import ServiceProvider, TracingInterceptor
+
+tracing = ZipkinTracing(
+    service_name="camera-gateway",
+    endpoint="http://zipkin:9411/api/v2/spans",
+    service_instance_id="camera-5",
+    sample_ratio=0.1,
+    resource_attributes={"camera.driver": "hikvision"},
+)
+frame_tracer = tracing.tracer()
+
+provider = ServiceProvider(rpc_channel)
+provider.add_interceptor(TracingInterceptor(tracing=tracing))
+
+with frame_tracer.span("camera.frame") as span:
+    span.set_attribute("camera.id", "5")
+    message = Message(content=image)
+    message.inject_tracing(span)
+    stream_channel.publish_stream(message, topic="CameraGateway.5.Frame")
+
+# Libere os spans enfileirados durante o encerramento normal do processo.
+tracing.shutdown()
+```
+
+Não associe corpos de imagem, credenciais, URLs de câmeras ou identificadores sem limite aos
+spans. Use uma proporção de amostragem menor que um para vídeo contínuo e defina `1.0` apenas
+em sessões curtas de diagnóstico. Consumidores continuam o trace do produtor com
+`message.extract_tracing()`.
+
+## Métricas
+
+As métricas do Prometheus são registradas no registry padrão. `MetricsInterceptor.start_server()`
+pode expô-las por HTTP. O perfil 2.0 exporta:
+
+- `is_wire_messages_published_total` e `is_wire_published_bytes_total`;
+- `is_wire_messages_received_total` e `is_wire_received_bytes_total`;
+- `is_wire_stream_processing_seconds`, `is_wire_stream_frame_age_seconds` e
   `is_wire_stream_callback_errors_total`;
 - `is_wire_reconnections_total`;
-- `is_wire_rpc_duration_seconds` and `is_wire_rpc_requests_total`, partitioned by status.
+- `is_wire_rpc_duration_seconds` e `is_wire_rpc_requests_total`, particionados por status.
 
-Image content and correlation IDs are never used as metric labels.
+O conteúdo das imagens e os IDs de correlação nunca são usados como labels de métricas.
 
-## TLS and connection lifecycle
+## TLS e ciclo de vida da conexão
 
-`amqps://` enables TLS with certificate and hostname verification. Additional py-amqp SSL
-options can be passed with `ssl_options`. Consumers reconnect with exponential backoff;
-publishes are never automatically retried because delivery may already have occurred.
+`amqps://` habilita TLS com verificação de certificado e hostname. Opções SSL adicionais do
+py-amqp podem ser passadas em `ssl_options`. Consumidores se reconectam com backoff exponencial;
+publicações nunca são repetidas automaticamente, pois a entrega pode já ter ocorrido.
 
 ```python
 channel = Channel(
@@ -174,7 +215,7 @@ channel = Channel(
 )
 ```
 
-## Development
+## Desenvolvimento
 
 ```shell
 python -m pip install -e '.[dev,tracing]'
@@ -184,26 +225,26 @@ python -m build
 twine check --strict dist/*
 ```
 
-Regenerate the internal wire schema reproducibly with the pinned Protobuf 5.29 compiler:
+Regenere o schema wire interno de forma reproduzível com o compilador Protobuf 5.29 fixado:
 
 ```shell
 python -m pip install -e '.[codegen]'
 python scripts/generate_wire.py
 ```
 
-Exercise the 30 FPS publisher / 10 FPS consumer profile against a test broker with:
+Execute o perfil de publicador a 30 FPS / consumidor a 10 FPS contra um broker de teste com:
 
 ```shell
 python scripts/validate_stream_profile.py --payload-size 1048576 --frames 300
 ```
 
-Run the same command from separate Kubernetes deployments sharing a `group` to compare
-RabbitMQ ingress/egress metrics as replicas are added.
+Execute o mesmo comando em implantações Kubernetes separadas que compartilhem um `group` para
+comparar as métricas de entrada/saída do RabbitMQ conforme réplicas são adicionadas.
 
-See [MIGRATION.md](MIGRATION.md), [COMPATIBILITY.md](COMPATIBILITY.md), and
-[CHANGELOG.md](CHANGELOG.md) before upgrading an existing deployment.
+Consulte [MIGRATION.md](MIGRATION.md), [COMPATIBILITY.md](COMPATIBILITY.md) e
+[CHANGELOG.md](CHANGELOG.md) antes de atualizar uma implantação existente.
 
-## Acknowledgements
+## Agradecimentos
 
-The modernization, compatibility review, testing, and PyPI packaging of the 1.3 series were
-completed with assistance from OpenAI Codex.
+A modernização, a revisão de compatibilidade, os testes e o empacotamento no PyPI da série 2.0
+foram realizados com assistência do OpenAI Codex.

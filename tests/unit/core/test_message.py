@@ -98,14 +98,14 @@ def test_pack_unpack():
     assert str(struct) == str(unpacked)
     assert struct == unpacked
 
-    # test pack/unpack for dict object with default serializtion as JSON
+    # testa empacotamento/desempacotamento de dicionário com serialização JSON
     dictionary = {"key": 0.1233444444, "hodor": "hold the door", "default": 0}
     message = Message(content=dictionary)
     assert message.content_type == ContentType.JSON
     unpacked = message.unpack()
     assert dictionary == unpacked
 
-    # test pack/unpack for dict object with protobuf content-type
+    # testa empacotamento/desempacotamento de objeto com content_type Protobuf
     message = Message()
     message.content_type = ContentType.PROTOBUF
     message.pack(dictionary)

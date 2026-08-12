@@ -1,4 +1,4 @@
-"""Regenerate the checked-in wire Protocol Buffers module."""
+"""Regenera o módulo wire Protocol Buffers versionado no repositório."""
 
 from pathlib import Path
 
@@ -18,9 +18,9 @@ def main() -> int:
     )
     if result == 0:
         generated = wire_dir / "wire_pb2.py"
-        # protoc escapes double quotes inside its single-quoted descriptor
-        # literal. Normalizing those redundant escapes keeps the checked-in
-        # output stable across formatting tools without changing its bytes.
+        # O protoc escapa aspas duplas dentro do literal do descritor entre
+        # aspas simples. Normalizar esses escapes redundantes mantém a saída
+        # versionada estável entre ferramentas de formatação sem alterar os bytes.
         generated.write_text(generated.read_text().replace(r'\"', '"'))
     return result
 

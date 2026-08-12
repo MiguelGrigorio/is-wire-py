@@ -7,16 +7,20 @@ def service_name(context):
 
 
 class TracingInterceptor(Interceptor):
-    def __init__(self, exporter=None, span_namer=service_name):
+    def __init__(self, exporter=None, span_namer=service_name, tracing=None):
+        if exporter is not None and tracing is not None:
+            raise ValueError("exporter and tracing are mutually exclusive")
         self.log = Logger(name="TracingInterceptor")
         self.exporter = exporter
         self.namer = span_namer
+        self.tracing = tracing
 
     def before_call(self, context):
-        tracer = Tracer(
-            self.exporter,
-            span_context=context.request.extract_tracing(),
-        )
+        parent = context.request.extract_tracing()
+        if self.tracing is None:
+            tracer = Tracer(self.exporter, span_context=parent)
+        else:
+            tracer = self.tracing.tracer(span_context=parent)
         span = tracer.start_span(name=self.namer(context))
         context.addons["tracer"] = tracer
         context.addons["tracing_interceptor.span"] = span

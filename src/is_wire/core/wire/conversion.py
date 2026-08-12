@@ -13,7 +13,7 @@ def _message_to_json(message):
             indent=0,
             always_print_fields_with_no_presence=True,
         )
-    except TypeError:  # Protobuf 3 compatibility during broker migration.
+    except TypeError:  # Compatibilidade com Protobuf 3 durante a migração do broker.
         return json_format.MessageToJson(
             message,
             indent=0,

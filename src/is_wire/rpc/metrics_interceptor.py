@@ -20,7 +20,7 @@ RPC_REQUESTS = Counter(
 class MetricsInterceptor(Interceptor):
     def __init__(self):
         self.log = Logger(name="MetricsInterceptor")
-        # Preserve the public attributes while exposing the corrected metric types.
+        # Preserva os atributos públicos enquanto expõe os tipos de métricas corrigidos.
         self.duration = RPC_DURATION
         self.count = RPC_REQUESTS
 

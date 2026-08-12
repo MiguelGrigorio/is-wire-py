@@ -59,8 +59,8 @@ def test_stream_keeps_only_the_latest_pending_frame():
     _drain_until(channel, lambda: bool(stream._stream_deliveries))
     channel.publish_stream(_message(1), topic=topic)
     channel.publish_stream(_message(2), topic=topic)
-    # queue_declare is a round trip, so both asynchronous publishes have been
-    # applied by the broker before the in-flight frame is acknowledged.
+    # queue_declare faz uma ida e volta; portanto, as duas publicações
+    # assíncronas foram aplicadas pelo broker antes da confirmação do quadro.
     channel._channel.queue_declare(queue=stream.name, passive=True)
 
     first = stream.consume(timeout=1.0)

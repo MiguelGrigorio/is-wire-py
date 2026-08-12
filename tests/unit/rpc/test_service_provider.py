@@ -83,7 +83,7 @@ def test_serve():
     recv = channel.consume(timeout=1.0)
     assert recv.subscription_id == subscription.id
 
-    # Trying to serve a message from another subscription should fail
+    # Tentar atender uma mensagem de outra assinatura deve falhar
     assert service.should_serve(recv) is False
     with pytest.raises(RuntimeError):
         service.serve(recv)

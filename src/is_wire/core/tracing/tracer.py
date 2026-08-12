@@ -1,7 +1,5 @@
 import contextlib
 import secrets
-import warnings
-from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from opentelemetry import trace
@@ -17,12 +15,10 @@ from .propagation import TracingContext
 
 try:
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
-except ImportError:  # The SDK intentionally lives in the optional tracing extra.
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+except ImportError:  # O SDK fica intencionalmente na dependência opcional de tracing.
     TracerProvider = None
     SimpleSpanProcessor = None
-    SpanExportResult = None
-    SpanExporter = object
 
 
 class _SpanAdapter:
@@ -71,83 +67,32 @@ class _TracerCompat:
         return getattr(self._delegate, name)
 
 
-class _LegacyExporterAdapter(SpanExporter):
-    def __init__(self, exporter):
-        self._exporter = exporter
-
-    def export(self, spans):
-        from opencensus.trace.span_context import SpanContext as OpenCensusSpanContext
-        from opencensus.trace.span_data import SpanData
-
-        converted = []
-        for span in spans:
-            context = span.context
-            parent = span.parent
-            oc_context = OpenCensusSpanContext(
-                trace_id=f"{context.trace_id:032x}",
-                span_id=f"{context.span_id:016x}",
-            )
-            converted.append(
-                SpanData(
-                    name=span.name,
-                    context=oc_context,
-                    span_id=f"{context.span_id:016x}",
-                    parent_span_id=f"{parent.span_id:016x}" if parent else None,
-                    attributes=dict(span.attributes or {}),
-                    start_time=_timestamp(span.start_time),
-                    end_time=_timestamp(span.end_time),
-                    child_span_count=0,
-                    stack_trace=None,
-                    annotations=None,
-                    message_events=None,
-                    links=None,
-                    status=None,
-                    same_process_as_parent_span=True,
-                    span_kind=0,
-                )
-            )
-        self._exporter.export(converted)
-        return SpanExportResult.SUCCESS
-
-    def shutdown(self):
-        shutdown = getattr(self._exporter, "shutdown", None)
-        if shutdown is not None:
-            shutdown()
-
-
-def _timestamp(nanoseconds):
-    if nanoseconds is None:
-        return None
-    return datetime.fromtimestamp(nanoseconds / 1_000_000_000, timezone.utc).isoformat()
-
-
 class Tracer:
-    """OpenTelemetry-backed facade preserving the original is-wire API."""
+    """Fachada baseada em OpenTelemetry que preserva a API original do is-wire."""
 
-    def __init__(self, exporter=None, span_context=None):
+    def __init__(self, exporter=None, span_context=None, provider=None):
+        if exporter is not None and provider is not None:
+            raise ValueError("exporter and provider are mutually exclusive")
         self._parent_context = _otel_parent_context(span_context)
         self._active = []
         self._provider = None
+        self._owns_provider = False
 
-        if TracerProvider is not None:
+        if provider is not None:
+            self._provider = provider
+            self._otel_tracer = provider.get_tracer("is-wire-sea", "2.0.1")
+        elif TracerProvider is not None:
             self._provider = TracerProvider()
+            self._owns_provider = True
             if exporter is not None:
-                if exporter.__class__.__module__.startswith("opencensus"):
-                    warnings.warn(
-                        "OpenCensus exporters are deprecated; "
-                        "migrate to an OpenTelemetry exporter",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                    exporter = _LegacyExporterAdapter(exporter)
                 self._provider.add_span_processor(SimpleSpanProcessor(exporter))
-            self._otel_tracer = self._provider.get_tracer("is-wire-sea", "1.3.0")
+            self._otel_tracer = self._provider.get_tracer("is-wire-sea", "2.0.1")
         else:
             if exporter is not None:
                 raise RuntimeError(
                     "An exporter requires the 'is-wire-sea[tracing]' optional dependency"
                 )
-            self._otel_tracer = trace.get_tracer("is-wire-sea", "1.3.0")
+            self._otel_tracer = trace.get_tracer("is-wire-sea", "2.0.1")
         self.tracer = _TracerCompat(self._otel_tracer)
 
     @contextlib.contextmanager
@@ -182,7 +127,7 @@ class Tracer:
         return span
 
     def shutdown(self):
-        if self._provider is not None:
+        if self._provider is not None and self._owns_provider:
             self._provider.shutdown()
 
 
