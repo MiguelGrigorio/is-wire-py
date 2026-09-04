@@ -1,5 +1,12 @@
 # Registro de alterações
 
+## 2.0.2
+
+- Recria filas anônimas exclusivas com um nome novo após perda de conexão, evitando
+  `RESOURCE_LOCKED` enquanto o RabbitMQ ainda libera a conexão anterior.
+- Preserva o identificador lógico da subscription e mantém estáveis os nomes das filas
+  explícitas e de streaming durante a reconexão.
+
 ## 2.0.1
 
 - Preserva a decisão B3 `sampled=false` ao propagar spans OpenTelemetry, impedindo que serviços

@@ -85,6 +85,13 @@ class Subscription:
     def _restore(self, channel):
         self._deliveries.clear()
         self._channel = channel
+        if self._anonymous:
+            # Exclusive queues belong to their original connection. RabbitMQ
+            # can keep that connection alive briefly after a TCP reset, so
+            # redeclaring the same queue name may fail with RESOURCE_LOCKED.
+            # A fresh queue also reflects that in-flight replies were lost
+            # with the old connection.
+            self._name = consumer_id()
         self._declare()
 
     def _enqueue(self, delivery):

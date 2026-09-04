@@ -1,6 +1,7 @@
 import os
 import socket
 import ssl
+from collections import deque
 from unittest.mock import Mock
 
 import pytest
@@ -8,6 +9,7 @@ from google.protobuf.struct_pb2 import Struct
 
 from is_wire.core import Channel, Message, Subscription, now
 from is_wire.core.channel import LARGE_STREAM_PAYLOAD
+from is_wire.core.subscription import Subscription as CoreSubscription
 
 URI = os.getenv('WIRE_RABBITMQ_URI', 'amqp://guest:guest@localhost:5672')
 EXCHANGE = os.getenv('WIRE_DEFAULT_EXCHANGE', 'is')
@@ -150,6 +152,43 @@ def test_amqps_requires_certificate_and_hostname_validation():
 def test_invalid_uri_scheme_is_rejected_before_connecting():
     with pytest.raises(ValueError):
         _channel_parameters("http://rabbit.example")
+
+
+def test_anonymous_subscription_uses_fresh_queue_when_restored(monkeypatch):
+    subscription = CoreSubscription.__new__(CoreSubscription)
+    subscription._anonymous = True
+    subscription._id = "stable-consumer-id"
+    subscription._name = "old-exclusive-queue"
+    subscription._deliveries = deque([object()])
+    subscription._declare = Mock()
+    new_channel = Mock()
+    monkeypatch.setattr(
+        "is_wire.core.subscription.consumer_id", lambda: "new-exclusive-queue"
+    )
+
+    subscription._restore(new_channel)
+
+    assert subscription.id == "stable-consumer-id"
+    assert subscription.name == "new-exclusive-queue"
+    assert subscription._channel is new_channel
+    assert not subscription._deliveries
+    subscription._declare.assert_called_once_with()
+
+
+def test_named_subscription_keeps_queue_name_when_restored(monkeypatch):
+    subscription = CoreSubscription.__new__(CoreSubscription)
+    subscription._anonymous = False
+    subscription._id = "consumer-id"
+    subscription._name = "durable-service-queue"
+    subscription._deliveries = deque()
+    subscription._declare = Mock()
+    consumer_id_mock = Mock()
+    monkeypatch.setattr("is_wire.core.subscription.consumer_id", consumer_id_mock)
+
+    subscription._restore(Mock())
+
+    assert subscription.name == "durable-service-queue"
+    consumer_id_mock.assert_not_called()
 
 
 def test_large_stream_payload_warns_but_is_published_without_compression():
